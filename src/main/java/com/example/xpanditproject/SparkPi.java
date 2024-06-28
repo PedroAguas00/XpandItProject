@@ -27,9 +27,8 @@ public final class SparkPi {
                 0
         ).otherwise(functions.col("Sentiment_Polarity")));
 
-        df.show();
-
         Dataset<Row> df_1 = df.groupBy("App").agg(functions.avg("Sentiment_Polarity").alias("Average_Sentiment_Polarity"));
+        df_1 = df_1.orderBy(df.col("App").asc());
         df_1.show();
 
         return df_1;
@@ -51,7 +50,7 @@ public final class SparkPi {
     // The date format I mantain the same because I couldnt format it, I comment the code I was trying to use to do this step, so you can analyse.
     //I think there are some errors with the categories in the array, idk why i couldnt distinct them.
     // I saw that in the version there are some erros in the input, like theres an "Android version" = "Mature +17", I think that doesnt belong there.
-    public static void getDataFrame_Exercise3(SparkSession spark) {
+    public static Dataset<Row> getDataFrame_Exercise3(SparkSession spark) {
         Dataset<Row> df = spark.read().option("header", "true").csv("src/main/resources/googleplaystore.csv");
         df.show();
 
@@ -124,13 +123,24 @@ public final class SparkPi {
         df_final = df_final.drop("Rating", "Reviews");
         df_final = df_final.join(df_categories, "App").join(df_max_reviews, "App");
         df_final = df_final.select("App", "Categories", "Rating", "Reviews", "Size", "Installs", "Type", "Price", "Content_Rating", "Genres", "Last_Updated", "Current_Version", "Minimum_Android_Version").orderBy(df.col("App").asc());
-        df_final.show(99, false);
+        //df_final.show(100, false);
 
+        return df_final;
     }
 
-//    public static void getDataFrame_Exercise3(SparkSession spark) {
-//
-//    }
+    //In my pc i couldnt save in the right way because of a problem with hadoop file, but i think this is the right answer
+    public static void getDataFrame_Exercise4(Dataset<Row> df_1, Dataset<Row> df_3) {
+        df_1 = df_1.dropDuplicates("App");
+        Dataset<Row> df = df_3.join(df_1, "App");
+        df.show(100);
+
+        df.write()
+                .format("parquet")
+                .option("overwrite", "true")
+                .option("compression", "gzip")
+                .save("src/main/resources/googleplaystore_cleaned.csv");
+
+    }
 
 
     public static void main(String[] args) {
@@ -140,14 +150,13 @@ public final class SparkPi {
                 .getOrCreate();
 
 
-        //Dataset<Row> df_1 = getDataFrame_Exercise1(spark);
+        Dataset<Row> df_1 = getDataFrame_Exercise1(spark);
         //df_1.show();
 
         //getDataFrame_Exercise2(spark);
-        getDataFrame_Exercise3(spark);
-        getDataFrame_Exercise4(spark);
+        Dataset<Row> df_3 = getDataFrame_Exercise3(spark);
+        getDataFrame_Exercise4(df_1, df_3);
         spark.stop();
     }
-
 
 }
