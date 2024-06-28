@@ -29,7 +29,7 @@ public final class SparkPi {
 
         Dataset<Row> df_1 = df.groupBy("App").agg(functions.avg("Sentiment_Polarity").alias("Average_Sentiment_Polarity"));
         df_1 = df_1.orderBy(df.col("App").asc());
-        df_1.show();
+        //df_1.show();
 
         return df_1;
     }
@@ -132,7 +132,7 @@ public final class SparkPi {
     public static void getDataFrame_Exercise4(Dataset<Row> df_1, Dataset<Row> df_3) {
         df_1 = df_1.dropDuplicates("App");
         Dataset<Row> df = df_3.join(df_1, "App");
-        df.show(100);
+        //df.show(100);
 
         df.write()
                 .format("parquet")
@@ -140,6 +140,28 @@ public final class SparkPi {
                 .option("compression", "gzip")
                 .save("src/main/resources/googleplaystore_cleaned.csv");
 
+    }
+
+
+    public static void getDataFrame_Exercise5(Dataset<Row> df_1, Dataset<Row> df_3) {
+        df_1 = df_1.dropDuplicates("App");
+        df_3 = df_3.join(df_1, "App");
+
+        Dataset<Row> df_Genre_count = df_3.groupBy("Genres").agg(functions.count("Genres").alias("Count")).dropDuplicates();
+        df_Genre_count.show();
+        Dataset<Row> df_Average_Rating = df_3.groupBy("Genres").agg(functions.avg("Rating").alias("Average_Rating"));
+        Dataset<Row> df_Average_Sentiment_Polarity = df_3.groupBy("Genres").agg(functions.avg("Average_Sentiment_Polarity"));
+
+        Dataset<Row> df_4 = df_3.select("Genres");
+        df_4 = df_4.join(df_Genre_count, "Genres").dropDuplicates().join(df_Average_Rating, "Genres").join(df_Average_Sentiment_Polarity, "Genres");
+
+        df_4 = df_4.withColumnRenamed("Genres","Genre");
+
+        df_4.write()
+                .format("parquet")
+                .option("overwrite", "true")
+                .option("compression", "gzip")
+                .save("src/main/resources/googleplaystore_metrics.csv");
     }
 
 
@@ -151,11 +173,10 @@ public final class SparkPi {
 
 
         Dataset<Row> df_1 = getDataFrame_Exercise1(spark);
-        //df_1.show();
-
         //getDataFrame_Exercise2(spark);
         Dataset<Row> df_3 = getDataFrame_Exercise3(spark);
-        getDataFrame_Exercise4(df_1, df_3);
+        //getDataFrame_Exercise4(df_1, df_3);
+        getDataFrame_Exercise5(df_1, df_3);
         spark.stop();
     }
 
